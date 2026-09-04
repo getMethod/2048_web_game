@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="2048 数字挑战——支持深浅主题、单步撤销和本地存档的桌面网页游戏。"
+    />
+    <meta name="theme-color" content="#07152b" />
+    <title>2048 数字挑战</title>
+    <script>
+      (() => {
+        const key = 'jy-2048:theme:v1';
+        let mode = null;
+        try {
+          const saved = localStorage.getItem(key);
+          if (saved === 'light' || saved === 'dark') mode = saved;
+        } catch {}
+        if (!mode) {
+          mode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = mode;
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

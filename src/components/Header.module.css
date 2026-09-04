@@ -1,0 +1,77 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  min-height: var(--header-height);
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+  backdrop-filter: blur(22px) saturate(140%);
+}
+
+.inner {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: clamp(18px, 3vw, 44px);
+  width: min(var(--page-max-width), calc(100% - 2 * var(--page-gutter)));
+  min-height: var(--header-height);
+  margin: 0 auto;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  width: fit-content;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.brandMark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 11px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+  box-shadow: var(--glow-accent);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(18px, 2.4vw, 34px);
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+.nav a {
+  transition: color var(--transition-fast);
+}
+
+.nav a:hover {
+  color: var(--color-accent-strong);
+}
+
+.gameLink {
+  color: var(--color-accent-strong);
+}
+
+@media (max-width: 900px) {
+  .inner {
+    grid-template-columns: 1fr auto;
+  }
+
+  .nav {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .brand > span:last-child {
+    display: none;
+  }
+}
