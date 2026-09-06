@@ -1,4 +1,14 @@
-import type { Board, CellValue, Direction, MoveResult, RandomSource } from './types';
+import type {
+  Board,
+  CellValue,
+  Direction,
+  MoveResult,
+  RandomSource,
+  Position,
+  SpawnResult,
+  TilePath,
+  TileMerge,
+} from './types';
 
 export const BOARD_SIZE = 4;
 export const WINNING_VALUE = 2048;
@@ -11,7 +21,7 @@ export function cloneBoard(board: Board): Board {
   return board.map((row) => [...row]);
 }
 
-export function addRandomTile(board: Board, random: RandomSource = Math.random): Board {
+export function spawnRandomTile(board: Board, random: RandomSource = Math.random): SpawnResult {
   const emptyCells: Array<[number, number]> = [];
 
   for (let row = 0; row < BOARD_SIZE; row += 1) {
@@ -23,7 +33,7 @@ export function addRandomTile(board: Board, random: RandomSource = Math.random):
   }
 
   if (emptyCells.length === 0) {
-    return cloneBoard(board);
+    return { board: cloneBoard(board), tile: null };
   }
 
   const positionRoll = Math.min(Math.max(random(), 0), 0.999999999);
@@ -37,73 +47,30 @@ export function addRandomTile(board: Board, random: RandomSource = Math.random):
     if (targetRow) targetRow[column] = value;
   }
 
-  return nextBoard;
+  return {
+    board: nextBoard,
+    tile: position ? { position: { row: position[0], column: position[1] }, value } : null,
+  };
+}
+
+export function addRandomTile(board: Board, random: RandomSource = Math.random): Board {
+  return spawnRandomTile(board, random).board;
 }
 
 export function createInitialBoard(random: RandomSource = Math.random): Board {
   return addRandomTile(addRandomTile(createEmptyBoard(), random), random);
 }
 
-function mergeLine(line: CellValue[]): { line: CellValue[]; scoreGained: number } {
-  const compacted = line.filter((value) => value !== 0);
-  const merged: CellValue[] = [];
-  let scoreGained = 0;
-
-  for (let index = 0; index < compacted.length; index += 1) {
-    const current = compacted[index] ?? 0;
-    const next = compacted[index + 1] ?? 0;
-
-    if (current !== 0 && current === next) {
-      const combined = current * 2;
-      merged.push(combined);
-      scoreGained += combined;
-      index += 1;
-    } else {
-      merged.push(current);
-    }
-  }
-
-  while (merged.length < BOARD_SIZE) merged.push(0);
-  return { line: merged, scoreGained };
-}
-
-function readLine(board: Board, index: number, direction: Direction): CellValue[] {
+function positionAt(line: number, offset: number, direction: Direction): Position {
   switch (direction) {
     case 'left':
-      return Array.from({ length: BOARD_SIZE }, (_, column) => board[index]?.[column] ?? 0);
+      return { row: line, column: offset };
     case 'right':
-      return Array.from(
-        { length: BOARD_SIZE },
-        (_, column) => board[index]?.[BOARD_SIZE - 1 - column] ?? 0,
-      );
+      return { row: line, column: BOARD_SIZE - 1 - offset };
     case 'up':
-      return Array.from({ length: BOARD_SIZE }, (_, row) => board[row]?.[index] ?? 0);
+      return { row: offset, column: line };
     case 'down':
-      return Array.from(
-        { length: BOARD_SIZE },
-        (_, row) => board[BOARD_SIZE - 1 - row]?.[index] ?? 0,
-      );
-  }
-}
-
-function writeLine(board: Board, index: number, direction: Direction, line: CellValue[]) {
-  for (let position = 0; position < BOARD_SIZE; position += 1) {
-    const value = line[position] ?? 0;
-    let row = index;
-    let column = position;
-
-    if (direction === 'right') column = BOARD_SIZE - 1 - position;
-    if (direction === 'up') {
-      row = position;
-      column = index;
-    }
-    if (direction === 'down') {
-      row = BOARD_SIZE - 1 - position;
-      column = index;
-    }
-
-    const targetRow = board[row];
-    if (targetRow) targetRow[column] = value;
+      return { row: BOARD_SIZE - 1 - offset, column: line };
   }
 }
 
@@ -116,18 +83,33 @@ function boardsEqual(first: Board, second: Board): boolean {
 export function moveBoard(board: Board, direction: Direction): MoveResult {
   const nextBoard = createEmptyBoard();
   let scoreGained = 0;
-
-  for (let index = 0; index < BOARD_SIZE; index += 1) {
-    const result = mergeLine(readLine(board, index, direction));
-    writeLine(nextBoard, index, direction, result.line);
-    scoreGained += result.scoreGained;
+  const paths: TilePath[] = [];
+  const merges: TileMerge[] = [];
+  for (let line = 0; line < BOARD_SIZE; line += 1) {
+    const sources = Array.from({ length: BOARD_SIZE }, (_, offset) => {
+      const from = positionAt(line, offset, direction);
+      return { from, value: board[from.row]?.[from.column] ?? 0, id: `${from.row}-${from.column}` };
+    }).filter((tile) => tile.value !== 0);
+    let target = 0;
+    for (let index = 0; index < sources.length; index += 1) {
+      const source = sources[index];
+      if (!source) continue;
+      const next = sources[index + 1];
+      const merged = next?.value === source.value;
+      const to = positionAt(line, target++, direction);
+      paths.push({ ...source, to, merged });
+      const value = merged ? source.value * 2 : source.value;
+      const row = nextBoard[to.row];
+      if (row) row[to.column] = value;
+      if (merged && next) {
+        paths.push({ ...next, to, merged: true });
+        merges.push({ position: to, value, sourceIds: [source.id, next.id] });
+        scoreGained += value;
+        index += 1;
+      }
+    }
   }
-
-  return {
-    board: nextBoard,
-    scoreGained,
-    moved: !boardsEqual(board, nextBoard),
-  };
+  return { board: nextBoard, scoreGained, moved: !boardsEqual(board, nextBoard), paths, merges };
 }
 
 export function hasWinningTile(board: Board): boolean {

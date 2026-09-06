@@ -1,40 +1,78 @@
-import { useCallback, useEffect, useReducer } from 'react';
-import { addRandomTile, canMove, createInitialBoard, hasWinningTile, moveBoard } from './engine';
+import { useCallback, useEffect, useLayoutEffect, useReducer, useState } from 'react';
+import { spawnRandomTile, canMove, createInitialBoard, hasWinningTile, moveBoard } from './engine';
 import { loadBestScore, loadGameState, saveBestScore, saveGameState } from './storage';
-import type { Direction, GameAction, GameState, RandomSource } from './types';
+import type {
+  Direction,
+  GameAction,
+  GameState,
+  GameSession,
+  RandomSource,
+  RandomRolls,
+} from './types';
 
-export function createGameState(random: RandomSource = Math.random): GameState {
+export function createSession(state: GameState): GameSession {
+  return {
+    ...state,
+    revision: 0,
+    presentation: null,
+    recordBaseline: state.bestScore,
+    recordCelebrated: false,
+    recordEvent: null,
+  };
+}
+
+export function createGameState(random: RandomSource = Math.random): GameSession {
   const restored = loadGameState();
   const storedBest = loadBestScore();
 
   if (restored) {
-    return { ...restored, bestScore: Math.max(restored.bestScore, storedBest, restored.score) };
+    return createSession({
+      ...restored,
+      bestScore: Math.max(restored.bestScore, storedBest, restored.score),
+    });
   }
 
-  return {
+  return createSession({
     board: createInitialBoard(random),
     score: 0,
     bestScore: storedBest,
     previous: null,
     status: 'playing',
-  };
+  });
 }
 
-export function gameReducer(state: GameState, action: GameAction): GameState {
+export function gameReducer(state: GameSession, action: GameAction): GameSession {
+  // 每次 Reducer 调用从相同采样值开始，React StrictMode 重算不会额外取随机数。
+  let rollIndex = 0;
+  const random = () => ('rolls' in action ? (action.rolls[rollIndex++] ?? 0) : 0);
   switch (action.type) {
     case 'move': {
       if (state.status === 'won' || state.status === 'lost') return state;
       const result = moveBoard(state.board, action.direction);
       if (!result.moved) return state;
 
-      const board = addRandomTile(result.board, action.random);
+      const spawned = spawnRandomTile(result.board, random);
+      const board = spawned.board;
       const score = state.score + result.scoreGained;
       let status: GameState['status'] = state.status;
 
       if (state.status === 'playing' && hasWinningTile(board)) status = 'won';
       else if (!canMove(board)) status = 'lost';
 
+      const revision = state.revision + 1;
+      const newRecord = !state.recordCelebrated && score > state.recordBaseline;
       return {
+        ...state,
+        revision,
+        presentation: {
+          id: revision,
+          paths: result.paths,
+          merges: result.merges,
+          spawned: spawned.tile,
+          scoreGained: result.scoreGained,
+        },
+        recordCelebrated: state.recordCelebrated || newRecord,
+        recordEvent: newRecord ? revision : state.recordEvent,
         board,
         score,
         bestScore: Math.max(state.bestScore, score),
@@ -47,6 +85,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const previous = state.previous;
       return {
         ...state,
+        presentation: null,
+        recordEvent: null,
         board: previous.board,
         score: previous.score,
         previous: null,
@@ -54,10 +94,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
     case 'continue':
-      return state.status === 'won' ? { ...state, status: 'continued' } : state;
+      return state.status === 'won'
+        ? { ...state, status: 'continued', presentation: null, recordEvent: null }
+        : state;
     case 'new-game':
       return {
-        board: createInitialBoard(action.random),
+        ...state,
+        revision: state.revision + 1,
+        presentation: null,
+        recordBaseline: state.bestScore,
+        recordCelebrated: false,
+        recordEvent: null,
+        board: createInitialBoard(random),
         score: 0,
         bestScore: state.bestScore,
         previous: null,
@@ -90,21 +138,70 @@ function isTypingTarget(target: EventTarget | null): boolean {
   );
 }
 
-export function useGame() {
+function sampleRolls(): RandomRolls {
+  return [Math.random(), Math.random(), Math.random(), Math.random()];
+}
+
+export interface UseGameResult {
+  state: GameSession;
+  directionFeedback: { direction: Direction; id: number } | null;
+  clearDirectionFeedback: (id: number) => void;
+  move: (direction: Direction) => void;
+  undo: () => void;
+  continueGame: () => void;
+  newGame: () => void;
+}
+
+export function useGame(): UseGameResult {
   const [state, dispatch] = useReducer(gameReducer, undefined, () => createGameState());
+  const [directionFeedback, setDirectionFeedback] = useState<{
+    direction: Direction;
+    id: number;
+  } | null>(null);
 
   useEffect(() => {
     saveGameState(state);
     saveBestScore(state.bestScore);
   }, [state]);
 
-  const move = useCallback((direction: Direction) => {
-    dispatch({ type: 'move', direction, random: Math.random });
+  const signalDirection = useCallback((direction: Direction) => {
+    setDirectionFeedback((current) => ({ direction, id: (current?.id ?? 0) + 1 }));
   }, []);
 
+  const clearDirectionFeedback = useCallback((id: number) => {
+    setDirectionFeedback((current) => (current?.id === id ? null : current));
+  }, []);
+
+  const move = useCallback(
+    (direction: Direction) => {
+      signalDirection(direction);
+      dispatch({ type: 'move', direction, rolls: sampleRolls() });
+    },
+    [signalDirection],
+  );
+
   useEffect(() => {
+    const clear = () => setDirectionFeedback(null);
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    window.addEventListener('blur', clear);
+    motion.addEventListener('change', clear);
+    return () => {
+      window.removeEventListener('blur', clear);
+      motion.removeEventListener('change', clear);
+    };
+  }, []);
+
+  useLayoutEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (isTypingTarget(event.target)) return;
+      if (
+        isTypingTarget(event.target) ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        document.querySelector('[role="dialog"]')
+      )
+        return;
+      if (event.target instanceof Element && event.target.closest('[data-demo-card]')) return;
       const direction = directionByKey[event.key];
       if (!direction) return;
       event.preventDefault();
@@ -117,9 +214,11 @@ export function useGame() {
 
   return {
     state,
+    directionFeedback,
+    clearDirectionFeedback,
     move,
     undo: () => dispatch({ type: 'undo' }),
     continueGame: () => dispatch({ type: 'continue' }),
-    newGame: () => dispatch({ type: 'new-game', random: Math.random }),
+    newGame: () => dispatch({ type: 'new-game', rolls: sampleRolls() }),
   };
 }

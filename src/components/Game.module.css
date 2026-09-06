@@ -43,7 +43,7 @@
 
 .gameLayout {
   display: grid;
-  grid-template-columns: minmax(400px, 560px) minmax(300px, 1fr);
+  grid-template-columns: calc(var(--board-size) + 2 * var(--panel-padding) + 2px) minmax(0, 1fr);
   align-items: stretch;
   gap: clamp(28px, 5vw, 64px);
 }
@@ -58,13 +58,14 @@
 }
 
 .gamePanel {
-  padding: clamp(16px, 2vw, 24px);
+  padding: var(--panel-padding);
 }
 
 .boardFrame {
-  width: 100%;
+  width: min(100%, var(--board-size));
+  margin: auto;
   aspect-ratio: 1;
-  padding: clamp(8px, 1vw, 14px);
+  padding: var(--board-gap);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-lg);
   background: var(--color-board);
@@ -74,12 +75,14 @@
 }
 
 .board {
+  position: absolute;
+  inset: 0;
   display: grid;
   width: 100%;
   height: 100%;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   grid-template-rows: repeat(4, minmax(0, 1fr));
-  gap: clamp(8px, 1vw, 14px);
+  gap: var(--board-gap);
 }
 
 .cell {
@@ -93,7 +96,7 @@
   font-size: clamp(1.35rem, 3.2vw, 2.75rem);
   font-weight: 900;
   letter-spacing: -0.06em;
-  box-shadow: inset 0 1px 1px rgb(255 255 255 / 10%);
+  box-shadow: inset 0 1px 1px color-mix(in srgb, var(--tile-high-text) 10%, transparent);
   transition:
     background-color var(--transition-base),
     color var(--transition-base),
@@ -247,6 +250,30 @@
   transform: translateY(-1px);
 }
 
+.directionPad button:active {
+  border-color: var(--color-border-strong);
+  background: var(--color-accent-soft);
+  transform: translateY(2px);
+}
+
+.directionPressed {
+  animation: var(--animation-direction-press) var(--motion-control) var(--motion-ease) both;
+}
+
+.controlFeedback {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.undoFeedback {
+  color: var(--color-success);
+  font-size: var(--font-small);
+  font-weight: 800;
+  animation: var(--animation-feedback-in) var(--motion-feedback-in) var(--motion-ease) both;
+}
+
 .controlActions,
 .dialogActions {
   display: flex;
@@ -284,7 +311,7 @@
 .primaryButton {
   border: 1px solid var(--color-border-strong);
   background: linear-gradient(135deg, var(--color-accent), var(--color-accent-secondary));
-  color: #ffffff;
+  color: var(--tile-high-text);
 }
 
 .secondaryButton:hover,
@@ -361,4 +388,91 @@
   .controlsPanel {
     padding: 20px;
   }
+}
+
+.boardSurface {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+}
+.boardRow {
+  display: contents;
+}
+.tileLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.tile {
+  position: absolute;
+  width: calc((100% - 3 * var(--board-gap)) / 4);
+  height: calc((100% - 3 * var(--board-gap)) / 4);
+  top: calc(var(--row) * (100% + var(--board-gap)) / 4);
+  left: calc(var(--column) * (100% + var(--board-gap)) / 4);
+  --move-x: calc((var(--from-column) - var(--column)) * (100% + var(--board-gap)));
+  --move-y: calc((var(--from-row) - var(--row)) * (100% + var(--board-gap)));
+  transition:
+    background-color var(--transition-base),
+    color var(--transition-base);
+}
+.tile[data-value] {
+  font-size: clamp(1.05rem, 2.7vw, 2.25rem);
+}
+.tile[data-value='2'],
+.tile[data-value='4'],
+.tile[data-value='8'],
+.tile[data-value='16'],
+.tile[data-value='32'],
+.tile[data-value='64'],
+.tile[data-value='128'],
+.tile[data-value='256'],
+.tile[data-value='512'] {
+  font-size: clamp(1.35rem, 3.2vw, 2.75rem);
+}
+.sliding {
+  animation: var(--animation-tile-slide) var(--motion-slide) var(--motion-ease) both;
+}
+.mergeSource {
+  animation:
+    var(--animation-tile-slide) var(--motion-slide) var(--motion-ease) both,
+    var(--animation-tile-disappear) var(--motion-slide) step-end forwards;
+}
+.mergedTile {
+  z-index: 2;
+  animation: var(--animation-tile-merge) var(--motion-merge) var(--motion-ease) var(--motion-slide)
+    both;
+}
+.bornTile {
+  animation: var(--animation-tile-birth) var(--motion-birth) var(--motion-ease) var(--motion-slide)
+    both;
+}
+.scoreCard {
+  position: relative;
+  min-width: 0;
+}
+.scoreCard strong {
+  overflow-wrap: anywhere;
+}
+.scoreGain {
+  position: absolute;
+  right: var(--space-small);
+  bottom: var(--space-small);
+  color: var(--color-accent-strong);
+  animation: var(--animation-score-rise) var(--motion-score) var(--motion-ease) both;
+  pointer-events: none;
+}
+.recordSlot {
+  position: absolute;
+  top: calc(-1 * var(--space-small));
+  right: var(--space-small);
+}
+.newRecord {
+  display: block;
+  padding: 0 var(--space-small);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-solid);
+  color: var(--color-success);
+  font-size: var(--font-small);
+  animation: var(--animation-record-in) var(--motion-reveal) var(--motion-ease) both;
 }

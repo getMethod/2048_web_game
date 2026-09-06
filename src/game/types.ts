@@ -19,10 +19,51 @@ export interface MoveResult {
   board: Board;
   scoreGained: number;
   moved: boolean;
+  paths: TilePath[];
+  merges: TileMerge[];
 }
 
+export interface Position {
+  row: number;
+  column: number;
+}
+export interface TilePath {
+  id: string;
+  value: number;
+  from: Position;
+  to: Position;
+  merged: boolean;
+}
+export interface TileMerge {
+  position: Position;
+  value: number;
+  sourceIds: [string, string];
+}
+export interface SpawnedTile {
+  position: Position;
+  value: number;
+}
+export interface SpawnResult {
+  board: Board;
+  tile: SpawnedTile | null;
+}
+export interface MovePresentation {
+  id: number;
+  paths: TilePath[];
+  merges: TileMerge[];
+  spawned: SpawnedTile | null;
+  scoreGained: number;
+}
+export interface GameSession extends GameState {
+  revision: number;
+  presentation: MovePresentation | null;
+  recordBaseline: number;
+  recordCelebrated: boolean;
+  recordEvent: number | null;
+}
+export type RandomRolls = readonly [number, number, number, number];
 export type GameAction =
-  | { type: 'move'; direction: Direction; random: RandomSource }
+  | { type: 'move'; direction: Direction; rolls: RandomRolls }
   | { type: 'undo' }
   | { type: 'continue' }
-  | { type: 'new-game'; random: RandomSource };
+  | { type: 'new-game'; rolls: RandomRolls };

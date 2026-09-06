@@ -1,5 +1,6 @@
 import type { UseThemeResult } from '../theme/useTheme';
 import { ThemeSwitch } from './ThemeSwitch';
+import { useActiveSection } from './useActiveSection';
 import styles from './Header.module.css';
 
 interface HeaderProps {
@@ -7,6 +8,8 @@ interface HeaderProps {
 }
 
 export function Header({ theme }: HeaderProps) {
+  const activeSection = useActiveSection();
+
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
@@ -17,9 +20,25 @@ export function Header({ theme }: HeaderProps) {
           <span>2048 数字挑战</span>
         </a>
         <nav className={styles.nav} aria-label="主要导航">
-          <a href="#introduction">游戏介绍</a>
-          <a href="#how-to-play">玩法说明</a>
-          <a className={styles.gameLink} href="#game">
+          <a
+            className={activeSection === 'introduction' ? styles.activeLink : undefined}
+            href="#introduction"
+            aria-current={activeSection === 'introduction' ? 'location' : undefined}
+          >
+            游戏介绍
+          </a>
+          <a
+            className={activeSection === 'how-to-play' ? styles.activeLink : undefined}
+            href="#how-to-play"
+            aria-current={activeSection === 'how-to-play' ? 'location' : undefined}
+          >
+            玩法说明
+          </a>
+          <a
+            className={`${styles.gameLink} ${activeSection === 'game' ? styles.activeLink : ''}`}
+            href="#game"
+            aria-current={activeSection === 'game' ? 'location' : undefined}
+          >
             开始游戏
           </a>
         </nav>
