@@ -1,0 +1,147 @@
+.demo {
+  margin-bottom: var(--space-card);
+}
+.stage {
+  position: relative;
+  display: flex;
+  height: var(--demo-height);
+  align-items: center;
+  gap: var(--space-small);
+}
+.stage b {
+  display: grid;
+  place-items: center;
+  width: var(--demo-tile);
+  height: var(--demo-tile);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+  font-size: var(--font-h3);
+}
+.keys {
+  display: grid;
+  gap: var(--space-tiny);
+}
+.keys > kbd {
+  margin: auto;
+}
+.keys div {
+  display: flex;
+  gap: var(--space-tiny);
+}
+.keys kbd {
+  display: grid;
+  place-items: center;
+  width: var(--demo-key);
+  height: var(--demo-key);
+  border: 1px solid var(--color-border);
+  border-bottom-width: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+  font: inherit;
+}
+.miniBoard {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-tiny);
+  width: calc(2 * var(--demo-tile) + var(--space-tiny));
+  height: calc(2 * var(--demo-tile) + var(--space-tiny));
+}
+.miniBoard i {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--tile-empty);
+}
+.moveTile {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.formula {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-tiny);
+  font-weight: 800;
+}
+.formula b {
+  flex-shrink: 0;
+}
+.mergeScene {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.mergeScene b {
+  position: absolute;
+  background: var(--color-surface-raised);
+}
+.stage .winTile {
+  width: calc(2 * var(--demo-tile));
+  height: calc(2 * var(--demo-tile));
+  margin: auto;
+  background: var(--tile-2048);
+  color: var(--tile-high-text);
+  font-size: var(--font-h3);
+  box-shadow: var(--glow-accent);
+}
+.replay {
+  position: relative;
+  z-index: 1;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--space-small);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-accent-strong);
+  font-size: var(--font-small);
+  cursor: pointer;
+}
+.replay:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-accent-soft);
+}
+.playing .moveTile {
+  animation: var(--animation-demo-move) var(--motion-demo) var(--motion-ease) both;
+}
+.playing .activeKey {
+  animation: var(--animation-demo-key) var(--motion-demo) ease both;
+}
+.playing .formula {
+  animation: var(--animation-demo-rule) var(--motion-demo) linear both;
+}
+.playing .mergeLeft {
+  --demo-from: calc(-1 * var(--demo-tile));
+  animation: var(--animation-demo-merge) var(--motion-demo) var(--motion-ease) both;
+}
+.playing .mergeRight {
+  --demo-from: var(--demo-tile);
+  animation: var(--animation-demo-merge) var(--motion-demo) var(--motion-ease) both;
+}
+.playing .mergeResult {
+  animation: var(--animation-demo-result) var(--motion-demo) var(--motion-ease) both;
+}
+.playing .winTile {
+  animation: var(--animation-demo-win) var(--motion-demo) var(--motion-ease) both;
+}
+
+.winTile {
+  position: relative;
+  overflow: hidden;
+}
+.winTile::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--tile-high-text);
+  opacity: 0;
+  content: '';
+}
+.playing .winTile::after {
+  animation: var(--animation-demo-light) var(--motion-demo) var(--motion-ease) both;
+}

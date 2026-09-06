@@ -1,5 +1,7 @@
 :root[data-theme='light'] {
   color-scheme: light;
+  --hero-glow-base: 0.16;
+  --hero-glow-peak: 0.24;
   --color-bg: #edf7ff;
   --color-bg-deep: #dceeff;
   --color-surface: rgb(255 255 255 / 76%);
@@ -39,6 +41,8 @@
 
 :root[data-theme='dark'] {
   color-scheme: dark;
+  --hero-glow-base: 0.12;
+  --hero-glow-peak: 0.2;
   --color-bg: #061426;
   --color-bg-deep: #020916;
   --color-surface: rgb(9 30 55 / 72%);

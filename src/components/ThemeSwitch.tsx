@@ -8,7 +8,16 @@ interface ThemeSwitchProps {
 
 export function ThemeSwitch({ theme, onChange }: ThemeSwitchProps) {
   return (
-    <div className={styles.switcher} role="group" aria-label="页面主题">
+    <div
+      className={styles.switcher}
+      role="group"
+      aria-label="页面主题"
+      data-theme-mode={theme.mode}
+    >
+      <span
+        className={`${styles.indicator} ${theme.mode === 'dark' ? styles.indicatorDark : ''}`}
+        aria-hidden="true"
+      />
       <button
         className={styles.option}
         type="button"

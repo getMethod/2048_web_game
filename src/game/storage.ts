@@ -65,7 +65,16 @@ export function loadGameState(): GameState | null {
 
 export function saveGameState(state: GameState) {
   try {
-    window.localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(state));
+    window.localStorage.setItem(
+      GAME_STORAGE_KEY,
+      JSON.stringify({
+        board: state.board,
+        score: state.score,
+        bestScore: state.bestScore,
+        previous: state.previous,
+        status: state.status,
+      }),
+    );
   } catch {
     // 存储异常不应阻断当前棋局。
   }

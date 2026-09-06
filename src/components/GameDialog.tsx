@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import styles from './Game.module.css';
 
 interface GameDialogProps {
@@ -22,6 +22,9 @@ export function GameDialog({
   onSecondary,
   onClose,
 }: GameDialogProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
   const primaryRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -32,12 +35,25 @@ export function GameDialog({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && onClose) onClose();
+      if (event.key === 'Tab') {
+        const buttons =
+          dialogRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)');
+        const first = buttons?.[0];
+        const last = buttons?.[buttons.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      previousFocus?.focus();
+      previousFocus?.focus({ preventScroll: true });
     };
   }, [onClose, open]);
 
@@ -46,18 +62,19 @@ export function GameDialog({
   return (
     <div className={styles.dialogBackdrop} role="presentation" onMouseDown={onClose}>
       <div
+        ref={dialogRef}
         className={styles.dialog}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="game-dialog-title"
-        aria-describedby="game-dialog-description"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <span className={styles.dialogIcon} aria-hidden="true">
           ✦
         </span>
-        <h3 id="game-dialog-title">{title}</h3>
-        <p id="game-dialog-description">{message}</p>
+        <h3 id={titleId}>{title}</h3>
+        <p id={descriptionId}>{message}</p>
         <div className={styles.dialogActions}>
           {secondaryLabel && onSecondary ? (
             <button className={styles.secondaryButton} type="button" onClick={onSecondary}>

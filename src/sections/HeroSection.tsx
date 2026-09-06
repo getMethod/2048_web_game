@@ -1,9 +1,8 @@
+import { useAmbientMotion } from './useAmbientMotion';
 import styles from './Sections.module.css';
 
 export function HeroSection() {
-  const focusGame = () => {
-    window.setTimeout(() => document.getElementById('game')?.focus(), 350);
-  };
+  const visualRef = useAmbientMotion();
 
   return (
     <section className={`${styles.section} ${styles.hero}`} id="top" aria-labelledby="hero-title">
@@ -17,7 +16,7 @@ export function HeroSection() {
           数字挑战
         </h1>
         <p>合并数字，挑战你的最高分</p>
-        <a className={styles.primaryCta} href="#game" onClick={focusGame}>
+        <a className={styles.primaryCta} href="#game">
           立即开始
           <span aria-hidden="true">↓</span>
         </a>
@@ -30,7 +29,7 @@ export function HeroSection() {
           <span>或 WASD</span>
         </div>
       </div>
-      <div className={styles.heroVisual} aria-hidden="true">
+      <div ref={visualRef} className={styles.heroVisual} aria-hidden="true">
         <div className={styles.orbit} />
         <div className={styles.heroTile}>2048</div>
         <div className={`${styles.floatingTile} ${styles.tileOne}`}>2</div>
